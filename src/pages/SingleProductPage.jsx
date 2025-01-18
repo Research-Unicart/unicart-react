@@ -1,5 +1,11 @@
-import React, { useState } from "react";
-import { Star, ShoppingCart, Heart, Share2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  Share2,
+  ShoppingBasket,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { products } from "../data/products";
@@ -10,9 +16,37 @@ const SingleProductPage = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
 
   const product = products.find((p) => p.id === parseInt(id));
+
+  useEffect(() => {
+    const existingItem = cart.find(
+      (item) => item.id === product.id && item.size === selectedSize
+    );
+    if (existingItem) {
+      setQuantity(existingItem.quantity);
+    } else {
+      setQuantity(1);
+    }
+  }, [cart, product.id, selectedSize]);
+
+  const handleQuantityChange = (newQuantity) => {
+    const updatedQuantity = Math.max(1, newQuantity);
+    setQuantity(updatedQuantity);
+
+    const existingItem = cart.find(
+      (item) => item.id === product.id && item.size === selectedSize
+    );
+    if (existingItem) {
+      updateQuantity(product.id, updatedQuantity);
+    }
+  };
+
+  const handleBuyNow = () => {
+    addToCart(product, quantity, selectedSize);
+    navigate("/cart");
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -61,7 +95,7 @@ const SingleProductPage = () => {
             </div>
           </div>
 
-          <div className="text-2xl font-bold">${product.price}</div>
+          <div className="text-2xl font-bold">Rs. {product.price}</div>
 
           <div>
             <h3 className="font-semibold mb-2">Select Size</h3>
@@ -82,35 +116,34 @@ const SingleProductPage = () => {
             </div>
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-2">Quantity</h3>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-              >
-                -
-              </button>
-              <span className="w-12 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-              >
-                +
-              </button>
+          <div className="flex items-end  space-x-10">
+            <div>
+              <h3 className="font-semibold mb-2">Quantity</h3>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                >
+                  -
+                </button>
+                <span className="w-12 text-center">{quantity}</span>
+                <button
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="flex space-x-4">
             <button
-              onClick={() => {
-                addToCart(product, quantity, selectedSize);
-                navigate("/cart");
-              }}
+              onClick={handleBuyNow}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
             >
               <ShoppingCart className="w-5 h-5" />
-              <span>Add to Cart</span>
+              <span>Shop Now</span>
             </button>
             <button className="p-3 rounded-lg border border-gray-300 hover:bg-gray-50">
               <Heart className="w-5 h-5" />

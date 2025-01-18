@@ -7,14 +7,19 @@ const ProductCard = ({ id, name, price, image, category, rating }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
+  const handleAddToCart = () => {
     addToCart({ id, name, price, image }, 1);
+  };
+
+  const handleShopNow = (e) => {
+    e.stopPropagation();
+    handleAddToCart();
+    navigate("/cart");
   };
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col justify-between h-full"
       onClick={() => navigate(`/single-product/${id}`)}
     >
       <div className="relative">
@@ -27,7 +32,7 @@ const ProductCard = ({ id, name, price, image, category, rating }) => {
         </button>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 flex-1">
         <div className="text-sm text-gray-500 mb-1">{category}</div>
         <h3 className="text-lg font-semibold mb-2 line-clamp-2">{name}</h3>
 
@@ -45,14 +50,17 @@ const ProductCard = ({ id, name, price, image, category, rating }) => {
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-xl font-bold">${price.toFixed(2)}</span>
+          <span className="text-xl font-bold">Rs. {price.toFixed(2)}</span>
         </div>
+      </div>
+
+      <div className="flex justify-center m-4">
         <button
-          onClick={handleAddToCart}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mt-3"
+          onClick={handleShopNow}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
         >
           <ShoppingCart className="h-4 w-4" />
-          Add to Cart
+          Shop Now
         </button>
       </div>
     </div>

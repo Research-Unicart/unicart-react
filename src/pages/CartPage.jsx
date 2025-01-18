@@ -69,7 +69,7 @@ const CartPage = () => {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="font-semibold">${item.price}</div>
+                  <div className="font-semibold">Rs. {item.price}</div>
                 </div>
               </div>
             </div>
@@ -83,20 +83,20 @@ const CartPage = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>${shipping.toFixed(2)}</span>
+                <span>Rs. {shipping.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>Rs. {tax.toFixed(2)}</span>
               </div>
               <div className="h-px bg-gray-200 my-2" />
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>Rs. {total.toFixed(2)}</span>
               </div>
             </div>
 

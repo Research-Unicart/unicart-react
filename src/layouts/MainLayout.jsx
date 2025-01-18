@@ -1,12 +1,19 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { ShoppingCart, User, Search } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
 const MainLayout = () => {
   const { cart } = useCart();
+  const navigate = useNavigate();
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      navigate(`/search?q=${e.target.value}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -15,11 +22,9 @@ const MainLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <a href="/">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-gray-900">Uni-Cart</h1>
-              </div>
-            </a>
+            <Link to="/" className="flex-shrink-0">
+              <h1 className="text-2xl font-bold text-gray-900">Uni-Cart</h1>
+            </Link>
 
             {/* Search */}
             <div className="flex-1 max-w-lg mx-8">
@@ -28,6 +33,7 @@ const MainLayout = () => {
                   type="text"
                   placeholder="Search products..."
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={handleSearch}
                 />
                 <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
@@ -35,12 +41,12 @@ const MainLayout = () => {
 
             {/* Navigation */}
             <nav className="flex items-center space-x-8">
-              <a href="/cart" className="relative">
+            <Link to="/cart" className="relative">
                 <ShoppingCart className="h-6 w-6 text-gray-600 hover:text-gray-900" />
                 <span className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   {cartItemCount}
                 </span>
-              </a>
+                </Link>
               <a href="/account">
                 <User className="h-6 w-6 text-gray-600 hover:text-gray-900" />
               </a>
