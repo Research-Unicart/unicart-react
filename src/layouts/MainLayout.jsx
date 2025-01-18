@@ -1,8 +1,13 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { ShoppingCart, User, Search } from 'lucide-react';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { ShoppingCart, User, Search } from "lucide-react";
+import { useCart } from "../context/CartContext";
 
 const MainLayout = () => {
+  const { cart } = useCart();
+
+  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -10,10 +15,12 @@ const MainLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">E-Store</h1>
-            </div>
-            
+            <a href="/">
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold text-gray-900">Uni-Cart</h1>
+              </div>
+            </a>
+
             {/* Search */}
             <div className="flex-1 max-w-lg mx-8">
               <div className="relative">
@@ -25,13 +32,13 @@ const MainLayout = () => {
                 <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
-            
+
             {/* Navigation */}
             <nav className="flex items-center space-x-8">
               <a href="/cart" className="relative">
                 <ShoppingCart className="h-6 w-6 text-gray-600 hover:text-gray-900" />
                 <span className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                  0
+                  {cartItemCount}
                 </span>
               </a>
               <a href="/account">
@@ -39,19 +46,21 @@ const MainLayout = () => {
               </a>
             </nav>
           </div>
-          
-          {/* Categories Menu */}
+
+          {/* Sub Header Menu */}
           <div className="py-2 border-t">
             <nav className="flex space-x-8">
-              {['Electronics', 'Clothing', 'Books', 'Home', 'Sports'].map((category) => (
-                <a
-                  key={category}
-                  href={`/category/${category.toLowerCase()}`}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  {category}
-                </a>
-              ))}
+              {["Products", "Categories", "About Us", "Contact Us", "More"].map(
+                (pages) => (
+                  <a
+                    key={pages}
+                    href={`/${pages.toLowerCase()}`}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    {pages}
+                  </a>
+                )
+              )}
             </nav>
           </div>
         </div>
@@ -68,24 +77,42 @@ const MainLayout = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-lg font-semibold mb-4">About Us</h3>
-              <p className="text-gray-400">Your trusted source for quality products.</p>
+              <p className="text-gray-400">
+                Your trusted source for quality products.
+              </p>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="/contact">Contact Us</a></li>
-                <li><a href="/shipping">Shipping Info</a></li>
-                <li><a href="/returns">Returns</a></li>
-                <li><a href="/faq">FAQ</a></li>
+                <li>
+                  <a href="/contact">Contact Us</a>
+                </li>
+                <li>
+                  <a href="/shipping">Shipping Info</a>
+                </li>
+                <li>
+                  <a href="/returns">Returns</a>
+                </li>
+                <li>
+                  <a href="/faq">FAQ</a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="/products">All Products</a></li>
-                <li><a href="/deals">Deals</a></li>
-                <li><a href="/new">New Arrivals</a></li>
-                <li><a href="/trending">Trending</a></li>
+                <li>
+                  <a href="/products">All Products</a>
+                </li>
+                <li>
+                  <a href="/deals">Deals</a>
+                </li>
+                <li>
+                  <a href="/new">New Arrivals</a>
+                </li>
+                <li>
+                  <a href="/trending">Trending</a>
+                </li>
               </ul>
             </div>
             <div>
