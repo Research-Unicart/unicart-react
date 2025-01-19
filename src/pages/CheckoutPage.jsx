@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CreditCard, ShoppingBag } from "lucide-react";
+import { CreditCard, ShoppingBag, Truck } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 
@@ -7,6 +7,7 @@ const CheckoutPage = () => {
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("credit");
   const { cart, clearCart } = useCart();
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const subtotal = cart.reduce(
@@ -39,6 +40,29 @@ const CheckoutPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (paymentMethod === "credit") {
+      const cardNumber = e.target.cardNumber.value;
+      const expiry = e.target.expiry.value;
+      const cvv = e.target.cvv.value;
+      const cardholderName = e.target.cardholderName.value;
+
+      const cardErrors = validateCard(cardNumber, expiry, cvv, cardholderName);
+
+      if (Object.keys(cardErrors).length > 0) {
+        setErrors(cardErrors);
+        const firstErrorField = document.querySelector(
+          `[name="${Object.keys(cardErrors)[0]}"]`
+        );
+        firstErrorField?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+    }
+
+    setErrors({});
 
     const orderDetails = {
       cart,
@@ -82,6 +106,156 @@ const CheckoutPage = () => {
       </div>
     );
   }
+
+  const validateCard = (cardNumber, expiry, cvv, cardholderName) => {
+    const errors = {};
+
+    const isValidLuhn = (number) => {
+      const digits = number.replace(/\D/g, "");
+      let sum = 0;
+      let isEven = false;
+
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let digit = parseInt(digits[i]);
+
+        if (isEven) {
+          digit *= 2;
+          if (digit > 9) {
+            digit -= 9;
+          }
+        }
+
+        sum += digit;
+        isEven = !isEven;
+      }
+
+      return sum % 10 === 0;
+    };
+
+    if (!/^\d{16}$/.test(cardNumber.replace(/\s/g, ""))) {
+      errors.cardNumber = "Please enter a valid 16-digit card number";
+    } else if (!isValidLuhn(cardNumber)) {
+      errors.cardNumber = "Invalid card number";
+    }
+
+    const currentDate = new Date();
+    const [expMonth, expYear] = expiry
+      .split("/")
+      .map((num) => parseInt(num.trim()));
+    const currentYear = currentDate.getFullYear() % 100;
+    const currentMonth = currentDate.getMonth() + 1;
+
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
+      errors.expiry = "Use MM/YY format";
+    } else if (expMonth < 1 || expMonth > 12) {
+      errors.expiry = "Invalid month";
+    } else if (
+      expYear < currentYear ||
+      (expYear === currentYear && expMonth < currentMonth)
+    ) {
+      errors.expiry = "Card has expired";
+    }
+
+    if (!/^\d{3,4}$/.test(cvv)) {
+      errors.cvv = "CVV must be 3 or 4 digits";
+    }
+
+    if (!cardholderName.trim()) {
+      errors.cardholderName = "Name on card is required";
+    } else if (cardholderName.trim().length < 2) {
+      errors.cardholderName = "Please enter a valid name";
+    }
+
+    return errors;
+  };
+
+  const renderCreditCardForm = () => (
+    <div className="space-y-4">
+      <div className="space-y-4 p-4 border rounded-lg">
+        <div>
+          <input
+            type="text"
+            name="cardNumber"
+            placeholder="Card Number"
+            required
+            maxLength="19"
+            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errors.cardNumber ? "border-red-500" : ""
+            }`}
+            onChange={(e) => {
+              let value = e.target.value.replace(/\D/g, "");
+              value = value.replace(/(\d{4})/g, "$1 ").trim();
+              e.target.value = value;
+            }}
+          />
+          {errors.cardNumber && (
+            <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <input
+              type="text"
+              name="expiry"
+              placeholder="MM/YY"
+              required
+              maxLength="5"
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.expiry ? "border-red-500" : ""
+              }`}
+              onChange={(e) => {
+                let value = e.target.value.replace(/\D/g, "");
+                if (value.length >= 2) {
+                  value = value.slice(0, 2) + "/" + value.slice(2);
+                }
+                e.target.value = value;
+              }}
+            />
+            {errors.expiry && (
+              <p className="text-red-500 text-sm mt-1">{errors.expiry}</p>
+            )}
+          </div>
+
+          <div>
+            <input
+              type="text"
+              name="cvv"
+              placeholder="CVV"
+              required
+              maxLength="4"
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.cvv ? "border-red-500" : ""
+              }`}
+              onChange={(e) => {
+                e.target.value = e.target.value.replace(/\D/g, "");
+              }}
+            />
+            {errors.cvv && (
+              <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
+            )}
+          </div>
+
+          <div>
+            <input
+              type="text"
+              name="cardholderName"
+              placeholder="Name on Card"
+              required
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.cardholderName ? "border-red-500" : ""
+              }`}
+            />
+            {errors.cardholderName && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.cardholderName}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -237,33 +411,37 @@ const CheckoutPage = () => {
                 <span className="font-semibold">Credit Card</span>
               </label>
 
-              {paymentMethod === "credit" && (
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    required
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <div className="grid grid-cols-3 gap-4">
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      required
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      required
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="ZIP Code"
-                      required
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+              <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="cod"
+                  checked={paymentMethod === "cod"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="mr-4"
+                />
+                <Truck className="w-6 h-6 mr-4" />
+                <span className="font-semibold">Cash on Delivery</span>
+              </label>
+
+              {paymentMethod === "credit" && renderCreditCardForm()}
+
+              {paymentMethod === "cod" && (
+                <div className="p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-start space-x-2">
+                    <div className="text-sm text-gray-600">
+                      <p className="font-semibold mb-2">
+                        Cash on Delivery Terms:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>
+                          Payment will be collected at the time of delivery
+                        </li>
+                        <li>Please keep exact change ready if possible</li>
+                        <li>Cash and UPI payments accepted</li>
+                        <li>Additional fee of Rs. 50 applies for COD orders</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}
@@ -272,7 +450,7 @@ const CheckoutPage = () => {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="border rounded-lg p-6 space-y-6 sticky top-4">
+          <div className="border rounded-lg p-6 space-y-6 sticky top-28">
             <h2 className="text-xl font-semibold">Order Summary</h2>
 
             <div className="space-y-4">
@@ -310,10 +488,18 @@ const CheckoutPage = () => {
                 <span>Tax</span>
                 <span>Rs. {tax.toFixed(2)}</span>
               </div>
+              {paymentMethod === "cod" && (
+                <div className="flex justify-between text-gray-600">
+                  <span>COD Fee</span>
+                  <span>Rs. 50.00</span>
+                </div>
+              )}
               <div className="h-px bg-gray-200 my-2" />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>Rs. {total.toFixed(2)}</span>
+                <span>
+                  Rs. {(total + (paymentMethod === "cod" ? 50 : 0)).toFixed(2)}
+                </span>
               </div>
             </div>
 
@@ -326,7 +512,9 @@ const CheckoutPage = () => {
             </button>
 
             <p className="text-sm text-gray-600 text-center">
-              Your payment information is encrypted and secure
+              {paymentMethod === "credit"
+                ? "Your payment information is encrypted and secure"
+                : "Payment will be collected upon delivery"}
             </p>
           </div>
         </div>
