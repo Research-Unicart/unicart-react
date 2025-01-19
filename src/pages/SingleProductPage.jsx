@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Star,
-  ShoppingCart,
-  Heart,
-  Share2,
-  ShoppingBasket,
-} from "lucide-react";
+import { Star, ShoppingCart, Heart, Share2, AlertCircle } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { products } from "../data/products";
@@ -14,38 +8,52 @@ const SingleProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const { id } = useParams();
   const product = products.find((p) => p.id === parseInt(id));
-
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[0]);
-
+  
+  const hasVariations = product?.sizes?.some(
+    (size) => size && size.trim().length > 0
+  );
+  
+  const [selectedSize, setSelectedSize] = useState(
+    hasVariations ? product?.sizes[0] : null
+  );
 
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity } = useCart();
 
+  const isOutOfStock = product.stock <= 0;
+  const currentCartQuantity = cart.reduce((total, item) => {
+    if (item.id === product.id) {
+      return total + item.quantity;
+    }
+    return total;
+  }, 0);
 
+  const remainingStock = Math.max(0, product.stock - currentCartQuantity);
 
   useEffect(() => {
     const existingItem = cart.find(
-      (item) => item.id === product.id && item.size === selectedSize
+      (item) => item.id === product.id && 
+      (hasVariations ? item.size === selectedSize : true)
     );
+    
     if (existingItem) {
       setQuantity(existingItem.quantity);
     } else {
       setQuantity(1);
     }
-  }, [cart, product.id, selectedSize]);
+  }, [cart, product.id, selectedSize, hasVariations]);
 
   const handleQuantityChange = (newQuantity) => {
-    const updatedQuantity = Math.max(1, Math.min(newQuantity, product.stock));
+    const updatedQuantity = Math.max(1, Math.min(newQuantity, remainingStock));
     setQuantity(updatedQuantity);
-  
+
     const existingItem = cart.find(
-      (item) => item.id === product.id && item.size === selectedSize
+      (item) => item.id === product.id && 
+      (hasVariations ? item.size === selectedSize : true)
     );
-    
+
     if (existingItem) {
       updateQuantity(product.id, updatedQuantity, selectedSize);
-    } else {
-      addToCart(product, updatedQuantity, selectedSize);
     }
   };
 
@@ -62,7 +70,14 @@ const SingleProductPage = () => {
   };
 
   const handleBuyNow = () => {
-    if (!cart.find((item) => item.id === product.id && item.size === selectedSize)) {
+    if (isOutOfStock || remainingStock === 0) return;
+
+    const existingItem = cart.find(
+      (item) => item.id === product.id && 
+      (hasVariations ? item.size === selectedSize : true)
+    );
+    
+    if (!existingItem) {
       addToCart(product, quantity, selectedSize);
     }
     navigate("/cart");
@@ -72,12 +87,17 @@ const SingleProductPage = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
-          <div className="aspect-square rounded-lg overflow-hidden">
+          <div className="aspect-square rounded-lg overflow-hidden relative">
             <img
               src={product.images[0]}
               alt={product.name}
               className="w-full h-full object-cover"
             />
+            {isOutOfStock && (
+              <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-md">
+                Out of Stock
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-4">
             {product.images.slice(1).map((image, idx) => (
@@ -117,41 +137,56 @@ const SingleProductPage = () => {
 
           <div className="text-2xl font-bold">Rs. {product.price}</div>
 
-          <div>
-            <h3 className="font-semibold mb-2">Select Size</h3>
-            <div className="flex space-x-4">
-          {product.sizes.map((size) => (
-            <button
-              key={size}
-              onClick={() => handleSizeChange(size)}
-              className={`px-4 py-2 rounded-lg border ${
-                selectedSize === size
-                  ? "border-blue-600 bg-blue-50 text-blue-600"
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
-            >
-              {size}
-            </button>
-          ))}
-        </div>
-          </div>
+          {remainingStock > 0 && (
+            <div className="text-sm text-gray-600">
+              {remainingStock} units available
+            </div>
+          )}
 
-          <div className="flex items-end  space-x-10">
+          {remainingStock === 0 && !isOutOfStock && (
+            <div className="flex items-center text-amber-600 bg-amber-50 p-3 rounded-lg">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              All units are in cart
+            </div>
+          )}
+
+          {hasVariations && (
+            <div>
+              <h3 className="font-semibold mb-2">Select Size</h3>
+              <div className="flex space-x-4">
+                {product.sizes.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => handleSizeChange(size)}
+                    className={`px-4 py-2 rounded-lg border ${
+                      selectedSize === size
+                        ? "border-blue-600 bg-blue-50 text-blue-600"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-end space-x-10">
             <div>
               <h3 className="font-semibold mb-2">Quantity</h3>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => handleQuantityChange(quantity - 1)}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-                  disabled={quantity <= 1}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={quantity <= 1 || isOutOfStock}
                 >
                   -
                 </button>
                 <span className="w-12 text-center">{quantity}</span>
                 <button
                   onClick={() => handleQuantityChange(quantity + 1)}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-                  disabled={quantity >= product.stock}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={quantity >= remainingStock || isOutOfStock}
                 >
                   +
                 </button>
@@ -162,10 +197,15 @@ const SingleProductPage = () => {
           <div className="flex space-x-4">
             <button
               onClick={handleBuyNow}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+              disabled={isOutOfStock || remainingStock === 0}
+              className={`flex-1 px-6 py-3 rounded-lg flex items-center justify-center space-x-2 ${
+                isOutOfStock || remainingStock === 0
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
               <ShoppingCart className="w-5 h-5" />
-              <span>Shop Now</span>
+              <span>{isOutOfStock ? "Out of Stock" : "Shop Now"}</span>
             </button>
             <button className="p-3 rounded-lg border border-gray-300 hover:bg-gray-50">
               <Heart className="w-5 h-5" />

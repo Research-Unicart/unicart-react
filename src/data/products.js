@@ -8,7 +8,7 @@ export const products = [
       rating: 4,
       description: "High-quality wireless headphones with noise cancellation and premium sound quality.",
       specs: ["40mm Dynamic Drivers", "Active Noise Cancellation", "30-hour Battery Life", "Bluetooth 5.0"],
-      sizes: ["S", "M", "L"],
+      sizes: [" "],
       images: ["/images/1.jpg", "/images/1.jpg", "/images/1.jpg"],
       stock: 10
     },
@@ -23,7 +23,7 @@ export const products = [
       specs: ["AMOLED Display", "Heart Rate Monitor", "5 ATM Water Resistance", "7-day Battery Life"],
       sizes: ["S", "M"],
       images: ["/images/2.jpg", "/images/2.jpg", "/images/2.jpg"],
-      stock: 15
+      stock: 0
     },
     {
       id: 3,
