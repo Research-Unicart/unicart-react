@@ -7,9 +7,13 @@ const CartPage = () => {
   const navigate = useNavigate();
   const { cart, removeFromCart, updateQuantity } = useCart();
 
-  const handleUpdateQuantity = (itemId, currentQuantity, change) => {
+  const handleUpdateQuantity = (itemId, currentQuantity, size, change) => {
     const newQuantity = Math.max(1, currentQuantity + change);
-    updateQuantity(itemId, newQuantity);
+    updateQuantity(itemId, newQuantity, size);
+  };
+
+  const handleRemoveFromCart = (itemId, size) => {
+    removeFromCart(itemId, size);
   };
 
   const subtotal = cart.reduce(
@@ -27,7 +31,10 @@ const CartPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           {cart.map((item) => (
-            <div key={item.id} className="flex space-x-4 border rounded-lg p-4">
+            <div
+              key={`${item.id}-${item.size}`}
+              className="flex space-x-4 border rounded-lg p-4"
+            >
               <div className="w-24 h-24 rounded-lg overflow-hidden">
                 <img
                   src={item.image}
@@ -40,7 +47,7 @@ const CartPage = () => {
                 <div className="flex justify-between">
                   <h3 className="font-semibold">{item.name}</h3>
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => handleRemoveFromCart(item.id, item.size)}
                     className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -53,7 +60,12 @@ const CartPage = () => {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() =>
-                        handleUpdateQuantity(item.id, item.quantity, -1)
+                        handleUpdateQuantity(
+                          item.id,
+                          item.quantity,
+                          item.size,
+                          -1
+                        )
                       }
                       className="p-1 rounded-md border hover:bg-gray-50"
                     >
@@ -62,7 +74,12 @@ const CartPage = () => {
                     <span className="w-8 text-center">{item.quantity}</span>
                     <button
                       onClick={() =>
-                        handleUpdateQuantity(item.id, item.quantity, 1)
+                        handleUpdateQuantity(
+                          item.id,
+                          item.quantity,
+                          item.size,
+                          1
+                        )
                       }
                       className="p-1 rounded-md border hover:bg-gray-50"
                     >

@@ -12,13 +12,16 @@ import { products } from "../data/products";
 
 const SingleProductPage = () => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState("M");
-
   const { id } = useParams();
+  const product = products.find((p) => p.id === parseInt(id));
+
+  const [selectedSize, setSelectedSize] = useState(product?.sizes[0]);
+
+
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity } = useCart();
 
-  const product = products.find((p) => p.id === parseInt(id));
+
 
   useEffect(() => {
     const existingItem = cart.find(
@@ -32,19 +35,36 @@ const SingleProductPage = () => {
   }, [cart, product.id, selectedSize]);
 
   const handleQuantityChange = (newQuantity) => {
-    const updatedQuantity = Math.max(1, newQuantity);
+    const updatedQuantity = Math.max(1, Math.min(newQuantity, product.stock));
     setQuantity(updatedQuantity);
-
+  
     const existingItem = cart.find(
       (item) => item.id === product.id && item.size === selectedSize
     );
+    
     if (existingItem) {
-      updateQuantity(product.id, updatedQuantity);
+      updateQuantity(product.id, updatedQuantity, selectedSize);
+    } else {
+      addToCart(product, updatedQuantity, selectedSize);
+    }
+  };
+
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    const existingItem = cart.find(
+      (item) => item.id === product.id && item.size === size
+    );
+    if (existingItem) {
+      setQuantity(existingItem.quantity);
+    } else {
+      setQuantity(1);
     }
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity, selectedSize);
+    if (!cart.find((item) => item.id === product.id && item.size === selectedSize)) {
+      addToCart(product, quantity, selectedSize);
+    }
     navigate("/cart");
   };
 
@@ -100,20 +120,20 @@ const SingleProductPage = () => {
           <div>
             <h3 className="font-semibold mb-2">Select Size</h3>
             <div className="flex space-x-4">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-4 py-2 rounded-lg border ${
-                    selectedSize === size
-                      ? "border-blue-600 bg-blue-50 text-blue-600"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+          {product.sizes.map((size) => (
+            <button
+              key={size}
+              onClick={() => handleSizeChange(size)}
+              className={`px-4 py-2 rounded-lg border ${
+                selectedSize === size
+                  ? "border-blue-600 bg-blue-50 text-blue-600"
+                  : "border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
           </div>
 
           <div className="flex items-end  space-x-10">
@@ -123,6 +143,7 @@ const SingleProductPage = () => {
                 <button
                   onClick={() => handleQuantityChange(quantity - 1)}
                   className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                  disabled={quantity <= 1}
                 >
                   -
                 </button>
@@ -130,6 +151,7 @@ const SingleProductPage = () => {
                 <button
                   onClick={() => handleQuantityChange(quantity + 1)}
                   className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                  disabled={quantity >= product.stock}
                 >
                   +
                 </button>
