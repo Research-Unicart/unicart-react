@@ -458,7 +458,7 @@ const CheckoutPage = () => {
                 <div key={item.id} className="flex space-x-4">
                   <div className="w-16 h-16 rounded-lg overflow-hidden">
                     <img
-                      src={item.image}
+                      src={item.images[0]}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
