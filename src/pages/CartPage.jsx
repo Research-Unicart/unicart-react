@@ -2,48 +2,35 @@ import React from "react";
 import { Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { products } from "../data/products";
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { cart, removeFromCart, updateQuantity } = useCart();
+  const { cart, removeFromCart, updateQuantity, getCartTotal } = useCart();
 
-  const getProductStock = (productId) => {
-    const product = products.find((p) => p.id === productId);
-    return product?.stock || 0;
+  const getAvailableStock = (item) => {
+    return item.variation ? item.variation.stock : item.base_stock;
   };
 
   const isAtStockLimit = (item) => {
-    const productStock = getProductStock(item.id);
-    const totalQuantityInCart = cart
-      .filter((cartItem) => cartItem.id === item.id)
-      .reduce((sum, cartItem) => sum + cartItem.quantity, 0);
-
-    return item.quantity >= productStock || totalQuantityInCart >= productStock;
+    const availableStock = getAvailableStock(item);
+    return item.quantity >= availableStock;
   };
 
-  const handleUpdateQuantity = (itemId, currentQuantity, size, change) => {
-    const productStock = getProductStock(itemId);
-    const totalQuantityInCart = cart
-      .filter((item) => item.id === itemId)
-      .reduce((sum, item) => sum + item.quantity, 0);
-
-    const newQuantity = currentQuantity + change;
+  const handleUpdateQuantity = (item, change) => {
+    const availableStock = getAvailableStock(item);
+    const newQuantity = item.quantity + change;
 
     if (newQuantity <= 0) return;
-    if (totalQuantityInCart + change > productStock) return;
+    if (newQuantity > availableStock) return;
 
-    updateQuantity(itemId, newQuantity, size);
+    updateQuantity(item.id, newQuantity, item.variation);
   };
 
-  const handleRemoveFromCart = (itemId, size) => {
-    removeFromCart(itemId, size);
+  const handleRemoveFromCart = (item) => {
+    removeFromCart(item.id, item.variation);
   };
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const subtotal = getCartTotal();
   const shipping = 10;
   const tax = subtotal * 0.1;
   const total = subtotal + shipping + tax;
@@ -76,27 +63,23 @@ const CartPage = () => {
               </div>
             )}
 
-            {cart.map((item) => {
-              const productStock = getProductStock(item.id);
+            {cart?.map((item) => {
+              const availableStock = getAvailableStock(item);
               const isAtLimit = isAtStockLimit(item);
               const remainingStock = Math.max(
                 0,
-                productStock -
-                  cart
-                    .filter((cartItem) => cartItem.id === item.id)
-                    .reduce((sum, cartItem) => sum + cartItem.quantity, 0) +
-                  item.quantity
+                availableStock - item.quantity
               );
 
               return (
                 <div
-                  key={`${item.id}-${item.size}`}
+                  key={`${item?.id}-${item?.variation?.id || "base"}`}
                   className="flex space-x-4 border rounded-lg p-4"
                 >
                   <div className="w-24 h-24 rounded-lg overflow-hidden">
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={item?.images[0]}
+                      alt={item?.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -105,29 +88,24 @@ const CartPage = () => {
                     <div className="flex justify-between">
                       <h3 className="font-semibold">{item.name}</h3>
                       <button
-                        onClick={() => handleRemoveFromCart(item.id, item.size)}
+                        onClick={() => handleRemoveFromCart(item)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
 
-                    {item.size && (
-                      <div className="text-gray-600">Size: {item.size}</div>
+                    {item.variation && (
+                      <div className="text-gray-600">
+                        Variation: {item.variation.variation}
+                      </div>
                     )}
 
                     <div className="flex justify-between items-center">
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() =>
-                              handleUpdateQuantity(
-                                item.id,
-                                item.quantity,
-                                item.size,
-                                -1
-                              )
-                            }
+                            onClick={() => handleUpdateQuantity(item, -1)}
                             disabled={item.quantity <= 1}
                             className="p-1 rounded-md border hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           >
@@ -137,14 +115,7 @@ const CartPage = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() =>
-                              handleUpdateQuantity(
-                                item.id,
-                                item.quantity,
-                                item.size,
-                                1
-                              )
-                            }
+                            onClick={() => handleUpdateQuantity(item, 1)}
                             disabled={isAtLimit}
                             className="p-1 rounded-md border hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           >

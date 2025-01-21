@@ -7,13 +7,24 @@ const cartReducer = (state, action) => {
     case "ADD_TO_CART":
       const existingItemIndex = state.items.findIndex(
         (item) =>
-          item.id === action.payload.id && item.size === action.payload.size
+          item.id === action.payload.id &&
+          item.variation?.variation === action.payload.variation?.variation
       );
 
       if (existingItemIndex > -1) {
         const newItems = [...state.items];
-        newItems[existingItemIndex].quantity += action.payload.quantity;
-        return { ...state, items: newItems };
+        const newQuantity =
+          newItems[existingItemIndex].quantity + action.payload.quantity;
+
+        const stockLimit = action.payload.variation
+          ? action.payload.variation.stock
+          : action.payload.base_stock;
+
+        if (newQuantity <= stockLimit) {
+          newItems[existingItemIndex].quantity = newQuantity;
+          return { ...state, items: newItems };
+        }
+        return state;
       }
       return { ...state, items: [...state.items, action.payload] };
 
@@ -23,7 +34,8 @@ const cartReducer = (state, action) => {
         items: state.items.filter(
           (item) =>
             !(
-              item.id === action.payload.id && item.size === action.payload.size
+              item.id === action.payload.id &&
+              item.variation?.variation === action.payload.variation?.variation
             )
         ),
       };
@@ -32,7 +44,8 @@ const cartReducer = (state, action) => {
       return {
         ...state,
         items: state.items.map((item) =>
-          item.id === action.payload.id && item.size === action.payload.size
+          item.id === action.payload.id &&
+          item.variation?.variation === action.payload.variation?.variation
             ? { ...item, quantity: action.payload.quantity }
             : item
         ),
@@ -57,30 +70,90 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("cart", JSON.stringify(state.items));
   }, [state.items]);
 
-  const addToCart = (product, quantity = 1, size) => {
-    const defaultSize = size || product.sizes[0];
-    dispatch({
-      type: "ADD_TO_CART",
-      payload: { ...product, quantity, size: defaultSize },
-    });
+  const addToCart = (product, quantity = 1, variationId = null) => {
+    try {
+      const specs =
+        typeof product.specs === "string"
+          ? JSON.parse(product.specs)
+          : product.specs;
+      const images =
+        typeof product.images === "string"
+          ? JSON.parse(product.images)
+          : product.images;
+
+      const selectedVariation = variationId
+        ? product.variations.find((v) => v.id === variationId)
+        : null;
+
+      const price = selectedVariation
+        ? parseFloat(selectedVariation.price)
+        : parseFloat(product.base_price);
+
+      const availableStock = selectedVariation
+        ? selectedVariation.stock
+        : product.base_stock;
+
+      if (quantity > availableStock) {
+        console.warn("Requested quantity exceeds available stock");
+        return;
+      }
+
+      dispatch({
+        type: "ADD_TO_CART",
+        payload: {
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price,
+          quantity,
+          variation: selectedVariation,
+          images,
+          specs,
+          base_price: parseFloat(product.base_price),
+          base_stock: product.base_stock,
+          has_variations: product.has_variations === 1,
+          description: product.description,
+        },
+      });
+    } catch (error) {
+      console.error("Error adding product to cart:", error);
+    }
   };
 
-  const removeFromCart = (productId, size) => {
+  const removeFromCart = (productId, variation = null) => {
     dispatch({
       type: "REMOVE_FROM_CART",
-      payload: { id: productId, size },
+      payload: { id: productId, variation },
     });
   };
 
-  const updateQuantity = (productId, quantity, size) => {
-    dispatch({
-      type: "UPDATE_QUANTITY",
-      payload: { id: productId, quantity, size },
-    });
+  const updateQuantity = (productId, quantity, variation = null) => {
+    const item = state.items.find(
+      (i) =>
+        i.id === productId && i.variation?.variation === variation?.variation
+    );
+
+    if (item) {
+      const maxStock = variation ? variation.stock : item.base_stock;
+      if (quantity <= maxStock) {
+        dispatch({
+          type: "UPDATE_QUANTITY",
+          payload: { id: productId, quantity, variation },
+        });
+      } else {
+        console.warn("Requested quantity exceeds available stock");
+      }
+    }
   };
 
   const clearCart = () => {
     dispatch({ type: "CLEAR_CART" });
+  };
+
+  const getCartTotal = () => {
+    return state.items.reduce((total, item) => {
+      return total + item.price * item.quantity;
+    }, 0);
   };
 
   return (
@@ -91,6 +164,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         clearCart,
+        getCartTotal,
       }}
     >
       {children}
