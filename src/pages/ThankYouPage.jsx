@@ -32,7 +32,7 @@ const ThankYouPage = () => {
           {orderDetails.cart?.map((item) => (
             <div key={item.id} className="flex items-center space-x-4">
               <img
-                src={item.image}
+                src={item.images[0]}
                 alt={item.name}
                 className="w-16 h-16 object-cover rounded"
               />
