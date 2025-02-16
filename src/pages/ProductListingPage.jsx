@@ -18,7 +18,7 @@ const ProductListingPage = () => {
     try {
       return JSON.parse(jsonString);
     } catch (err) {
-      console.error("Error parsing JSON:", err);
+      // console.error("Error parsing JSON:", err);
       return fallback;
     }
   };

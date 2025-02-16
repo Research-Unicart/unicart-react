@@ -2,12 +2,24 @@ import React, { useState } from "react";
 import { CreditCard, ShoppingBag, Truck } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { orderService } from "../services/api";
+
+const formatCartItems = (cart) => {
+  return cart.map((item) => ({
+    productId: item.id,
+    quantity: item.quantity,
+    variationId: item.variation ? item.variation.id : null,
+  }));
+};
 
 const CheckoutPage = () => {
+  const { user } = useAuth();
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("credit");
   const { cart, clearCart } = useCart();
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const subtotal = cart.reduce(
@@ -38,59 +50,97 @@ const CheckoutPage = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (paymentMethod === "credit") {
-      const cardNumber = e.target.cardNumber.value;
-      const expiry = e.target.expiry.value;
-      const cvv = e.target.cvv.value;
-      const cardholderName = e.target.cardholderName.value;
-
-      const cardErrors = validateCard(cardNumber, expiry, cvv, cardholderName);
-
-      if (Object.keys(cardErrors).length > 0) {
-        setErrors(cardErrors);
-        const firstErrorField = document.querySelector(
-          `[name="${Object.keys(cardErrors)[0]}"]`
-        );
-        firstErrorField?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        return;
-      }
-    }
-
+    setIsLoading(true);
     setErrors({});
 
-    const orderDetails = {
-      cart,
-      subtotal,
-      shipping,
-      tax,
-      total,
-      email: formData.email,
-      shippingAddress: {
-        street: formData.street,
-        apartment: formData.apartment,
-        city: formData.city,
-        state: formData.state,
-        zip: formData.zip,
-      },
-      shippingMethod,
-      customerInfo: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-      },
-    };
+    try {
+      if (paymentMethod === "credit") {
+        const cardNumber = e.target.cardNumber.value;
+        const expiry = e.target.expiry.value;
+        const cvv = e.target.cvv.value;
+        const cardholderName = e.target.cardholderName.value;
 
-    localStorage.setItem("lastOrder", JSON.stringify(orderDetails));
+        const cardErrors = validateCard(
+          cardNumber,
+          expiry,
+          cvv,
+          cardholderName
+        );
 
-    clearCart();
+        if (Object.keys(cardErrors).length > 0) {
+          setErrors(cardErrors);
+          const firstErrorField = document.querySelector(
+            `[name="${Object.keys(cardErrors)[0]}"]`
+          );
+          firstErrorField?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          return;
+        }
+      }
 
-    navigate("/thank-you");
+      setErrors({});
+
+      const orderDetails = {
+        cart,
+        subtotal,
+        shipping,
+        tax,
+        total,
+        email: formData.email,
+        shippingAddress: {
+          street: formData.street,
+          apartment: formData.apartment,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+        },
+        shippingMethod,
+        customerInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+        },
+      };
+
+      localStorage.setItem("lastOrder", JSON.stringify(orderDetails));
+
+      const orderData = {
+        userId: user?.user?.id,
+        cart: formatCartItems(cart),
+        paymentMethod: paymentMethod,
+        status: "Pending",
+        shippingAddress: {
+          street: formData.street,
+          apartment: formData.apartment,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+        },
+        customerInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        },
+      };
+
+      const response = await orderService.createOrder(orderData);
+      clearCart();
+      navigate("/thank-you");
+    } catch (error) {
+      console.error("Order placement error:", error);
+      setErrors({
+        submit:
+          error.response?.data?.message ||
+          "An error occurred while placing your order",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (cart.length === 0) {

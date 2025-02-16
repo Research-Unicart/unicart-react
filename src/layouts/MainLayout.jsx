@@ -41,15 +41,15 @@ const MainLayout = () => {
 
             {/* Navigation */}
             <nav className="flex items-center space-x-8">
-            <Link to="/cart" className="relative">
+              <Link to="/cart" className="relative">
                 <ShoppingCart className="h-6 w-6 text-gray-600 hover:text-gray-900" />
                 <span className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   {cartItemCount}
                 </span>
-                </Link>
-              <a href="/account">
+              </Link>
+              <Link to="/profile" className="relative">
                 <User className="h-6 w-6 text-gray-600 hover:text-gray-900" />
-              </a>
+              </Link>
             </nav>
           </div>
 
