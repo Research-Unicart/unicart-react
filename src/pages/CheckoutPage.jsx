@@ -55,6 +55,11 @@ const CheckoutPage = () => {
     setIsLoading(true);
     setErrors({});
 
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     try {
       if (paymentMethod === "credit") {
         const cardNumber = e.target.cardNumber.value;
