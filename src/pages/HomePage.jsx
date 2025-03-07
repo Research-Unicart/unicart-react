@@ -28,8 +28,8 @@ const HomePage = () => {
           .filter((product) => product)
           .map((product) => ({
             ...product,
-            specs: safeJSONParse(product.specs),
-            images: safeJSONParse(product.images),
+            specs: (product.specs),
+            images: (product.images),
             rating: parseFloat(product.rating),
             base_price: parseFloat(product.base_price),
           }))
@@ -66,7 +66,7 @@ const HomePage = () => {
       });
       console.error("Error subscribing to newsletter:", err);
     } finally {
-      setSubscribeLoading(false);
+      setSubscribeLoading(false); 
     }
   };
 
